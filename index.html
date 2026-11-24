@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Examen IA et comptabilité</title>
+<style>
+:root{--papier:#F5F1E8;--nuit:#071C34;--gris:#4A5C72;--ligne:#E4E0D6;--carte:#FFFFFF;--accent:#534AB7;--alerte:#B85870;--ok:#4E8B5F}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--papier);color:var(--nuit);font:17px/1.5 "DM Sans",system-ui,Segoe UI,sans-serif;-webkit-user-select:none;user-select:none}
+main{max-width:760px;margin:0 auto;padding:28px 16px 48px}
+h1{font-family:Georgia,"Source Serif 4",serif;font-size:1.9rem;margin:0 0 6px}
+h1 em{font-weight:400}
+.sous{color:var(--gris);margin:0 0 22px}
+.carte{background:var(--carte);border:1px solid var(--ligne);border-radius:12px;padding:20px 22px;margin:14px 0}
+label{display:block;font-weight:600;margin:12px 0 6px}
+input[type=text],input[type=password]{width:100%;padding:11px 12px;border:1px solid var(--ligne);border-radius:8px;font:inherit;-webkit-user-select:text;user-select:text}
+button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:12px 20px;background:var(--nuit);color:#fff;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+button.discret{background:transparent;color:var(--gris);font-weight:500;padding:6px 0;text-decoration:underline}
+ul.regles{padding-left:20px;margin:8px 0}
+ul.regles li{margin:5px 0}
+.barre{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.compte{font-size:.9rem;color:var(--gris)}
+.timer{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1.3rem}
+.timer.urgent{color:var(--alerte)}
+.jauge{height:6px;background:var(--ligne);border-radius:3px;overflow:hidden;margin-bottom:18px}
+.jauge div{height:100%;background:var(--accent);transition:width .25s linear}
+.question{font-size:1.25rem;font-weight:600;margin:0 0 16px}
+.choix{display:grid;gap:10px}
+.choix button{background:var(--carte);color:var(--nuit);border:1.5px solid var(--ligne);text-align:left;font-weight:500;padding:14px 16px}
+.choix button:hover{border-color:var(--accent)}
+.choix button.pris{border-color:var(--accent);background:#ECEBF8}
+.pied{display:flex;justify-content:flex-end;margin-top:16px}
+.note{font-size:.88rem;color:var(--gris)}
+.score{font-family:Georgia,serif;font-size:3rem;margin:4px 0}
+.code{font-family:"IBM Plex Mono",monospace;background:#0E1A2A;color:#FFD9A8;padding:12px 14px;border-radius:8px;word-break:break-all;-webkit-user-select:text;user-select:text}
+.avert{border-left:4px solid var(--alerte);padding-left:12px}
+.cache{display:none}
+</style>
+</head>
+<body oncontextmenu="return false">
+<main>
+
+<section id="accueil">
+  <h1>Examen <em>IA appliquée à la comptabilité</em></h1>
+  <p class="sous">Abilways · fin de formation · 25 et 26 novembre 2026</p>
+  <div class="carte">
+    <label for="nom">Votre prénom et votre nom</label>
+    <input id="nom" type="text" autocomplete="off" maxlength="60">
+    <label for="code">Code d'aménagement <span class="note">(seulement si le formateur vous en a donné un)</span></label>
+    <input id="code" type="text" autocomplete="off" maxlength="20">
+  </div>
+  <div class="carte">
+    <strong>Les règles</strong>
+    <ul class="regles">
+      <li><span id="nbq">20</span> questions, une seule bonne réponse à chaque fois.</li>
+      <li><strong id="tps">30 secondes</strong> par question. Le temps écoulé, on passe à la suivante.</li>
+      <li>Pas de retour en arrière. La correction n'est pas affichée.</li>
+      <li><strong>Une seule tentative.</strong> Recharger ou fermer la page termine l'examen : les questions restantes comptent sans réponse.</li>
+      <li>L'examen se fait sans aide, IA comprise. Restez sur cette page : chaque sortie (autre onglet, autre fenêtre) est enregistrée et signalée au formateur.</li>
+      <li>L'examen passe en plein écran au démarrage.</li>
+    </ul>
+  </div>
+  <div class="pied"><button id="go" disabled>Commencer l'examen</button></div>
+</section>
+
+<section id="examen" class="cache">
+  <div class="barre"><span class="compte" id="compte"></span><span class="timer" id="timer"></span></div>
+  <div class="jauge"><div id="jauge"></div></div>
+  <div class="carte">
+    <p class="question" id="question"></p>
+    <div class="choix" id="choix"></div>
+  </div>
+  <div class="pied"><button id="valider" disabled>Valider et continuer</button></div>
+  <p class="note" id="alerte"></p>
+</section>
+
+<section id="fin" class="cache">
+  <h1>Examen <em>terminé.</em></h1>
+  <p class="avert cache" id="finmotif"></p>
+  <div class="carte">
+    <p class="sous" id="finnom"></p>
+    <p class="score" id="finscore"></p>
+    <p id="finsorties"></p>
+    <p class="note" id="finenvoi"></p>
+  </div>
+  <div class="carte">
+    <strong>Votre code de résultat</strong>
+    <p class="note">Copiez-le dans le chat de la classe, ou téléchargez votre fichier de résultat et envoyez-le au formateur.</p>
+    <p class="code" id="fincode"></p>
+    <button id="telecharger">Télécharger mon fichier de résultat</button>
+  </div>
+  <div class="pied"><button class="discret" id="formateur">Réservé au formateur</button></div>
+  <div class="carte cache" id="reset">
+    <label for="codeformateur">Code formateur (nouvelle tentative autorisée)</label>
+    <input id="codeformateur" type="password" autocomplete="off" maxlength="30">
+    <div class="pied"><button id="resetok">Autoriser une nouvelle tentative</button></div>
+  </div>
+</section>
+
+</main>
+<script>
+"use strict";
+const POOL = [{"id": "g01", "theme": "Les bases de l'IA", "categorie": "generale", "question": "Que veut dire « IA générative » ?", "choix": ["Une IA qui exécute uniquement des calculs comptables.", "Une IA qui produit du texte, des images ou du son à partir d'une demande.", "Un logiciel qui cherche ses réponses dans une base fixe.", "Un robot qui apprend en continu sur vos fichiers."], "cles": ["1UKUVG7"]}, {"id": "g02", "theme": "Les bases de l'IA", "categorie": "generale", "question": "Comment un modèle de langage écrit-il sa réponse ?", "choix": ["Il recopie une page internet existante.", "Il interroge un expert humain en arrière-plan.", "Il choisit la suite la plus probable, mot après mot.", "Il consulte toujours une base de données vérifiée."], "cles": ["7HZTPB"]}, {"id": "g03", "theme": "Les bases de l'IA", "categorie": "generale", "question": "Pourquoi une IA peut-elle ignorer un événement récent ?", "choix": ["Ses connaissances s'arrêtent à la fin de son entraînement.", "Elle refuse les sujets d'actualité par principe.", "Elle n'a accès qu'aux documents de l'entreprise.", "Elle efface sa mémoire chaque semaine."], "cles": ["1DLSJ07"]}, {"id": "g04", "theme": "Les bases de l'IA", "categorie": "generale", "question": "Qu'appelle-t-on une « hallucination » de l'IA ?", "choix": ["Un bug qui fait planter l'application.", "Une réponse refusée pour raison de sécurité.", "Une image générée par erreur.", "Une réponse inventée, présentée avec assurance."], "cles": ["A47GT"]}, {"id": "g05", "theme": "Bien utiliser l'IA", "categorie": "generale", "question": "Quelle est la meilleure façon de réduire les erreurs de l'IA sur un dossier ?", "choix": ["Lui demander d'être plus sûre d'elle.", "Lui fournir les documents sources et lui demander de les citer.", "Écrire la question en majuscules.", "Poser la même question trois fois de suite."], "cles": ["W9GASM"]}, {"id": "g06", "theme": "Bien utiliser l'IA", "categorie": "generale", "question": "Par rapport à un simple chat, un agent IA :", "choix": ["répond plus vite à une question simple.", "fonctionne sans aucune connexion internet.", "enchaîne seul plusieurs actions pour atteindre un objectif.", "ne peut jamais se tromper."], "cles": ["1BK0J3P"]}, {"id": "g07", "theme": "Les limites de l'IA", "categorie": "generale", "question": "D'où viennent surtout les biais d'une IA ?", "choix": ["Des données sur lesquelles elle a été entraînée.", "De la vitesse de votre connexion.", "Du nombre de personnes connectées en même temps.", "De la langue dans laquelle vous écrivez."], "cles": ["G23G50"]}, {"id": "g08", "theme": "Les bases de l'IA", "categorie": "generale", "question": "Une IA « multimodale » sait :", "choix": ["tourner sur plusieurs ordinateurs à la fois.", "remplacer plusieurs logiciels comptables.", "traduire seulement entre plusieurs langues.", "comprendre du texte, des images ou du son."], "cles": ["5FU7EN"]}, {"id": "g09", "theme": "Données et confidentialité", "categorie": "generale", "question": "Avant de coller un document dans une IA, la première question à vous poser :", "choix": ["Quelle IA répondra le plus vite ?", "Contient-il des données confidentielles ou personnelles ?", "Est-il au format PDF ou Word ?", "Faut-il le résumer avant de le coller ?"], "cles": ["1RUXPER"]}, {"id": "g10", "theme": "Bien utiliser l'IA", "categorie": "generale", "question": "Deux IA donnent deux totaux différents pour le même fichier. Que faites-vous ?", "choix": ["Vous prenez la moyenne des deux.", "Vous gardez le résultat de l'IA la plus récente.", "Vous refaites le calcul à partir de la source.", "Vous posez la question à une troisième IA."], "cles": ["NN8SRE"]}, {"id": "q01", "theme": "Fonctionnement de l'IA et ses erreurs", "categorie": "generale", "question": "Sans aucun document, l'IA affirme que la facture d'un fournisseur a été payée le 14 octobre. Pourquoi ?", "choix": ["Elle a consulté les relevés bancaires de l'entreprise.", "Elle se souvient des échanges d'un autre utilisateur.", "Elle a écrit la réponse la plus plausible, sans aucune source.", "Elle a retrouvé cette facture dans ses données d'entraînement."], "cles": ["B1L4G"]}, {"id": "q02", "theme": "Fonctionnement de l'IA et ses erreurs", "categorie": "metier", "question": "Vous demandez le total d'un export joint. Qu'est-ce qui montre que l'IA l'a calculé ?", "choix": ["Une trace du calcul visible : encart d'analyse ou code.", "Un montant donné au centime près.", "Une réponse rapide, donnée sans aucune hésitation.", "Le simple fait d'avoir joint le fichier Excel à la demande."], "cles": ["10UHJUC"]}, {"id": "q03", "theme": "Fonctionnement de l'IA et ses erreurs", "categorie": "metier", "question": "ChatGPT a totalisé votre export avec du code. Que vérifiez-vous encore ?", "choix": ["Rien : un programme ne se trompe jamais.", "Qu'il a lu les bonnes colonnes et toutes les lignes.", "Qu'il a bien utilisé le mode qui réfléchit avant de répondre.", "Que le résultat est arrondi à l'euro près."], "cles": ["1P6WCVD"]}, {"id": "q04", "theme": "Formuler une demande", "categorie": "generale", "question": "« Fais une relance client » donne un mail avec des factures inventées. Que manque-t-il d'abord ?", "choix": ["Un ton plus ferme et une longueur maximale.", "Le nom de l'outil d'IA à utiliser.", "Une formule de politesse en fin de mail.", "Le rôle, le contexte et la tâche."], "cles": ["1T3SZ3X"]}, {"id": "q05", "theme": "Relecture et responsabilité", "categorie": "metier", "question": "Une relance rédigée par l'IA part chez un client avec un montant faux. Qui en répond ?", "choix": ["L'éditeur de l'outil d'IA utilisé.", "Vous : c'est votre envoi, vous deviez le vérifier.", "Personne : l'erreur vient de la machine, pas de vous.", "Le service informatique qui a installé et paramétré l'outil."], "cles": ["1Q0VOZJ"]}, {"id": "q06", "theme": "Contrôles et analyse comptables", "categorie": "metier", "question": "L'IA attribue un écart de charges à « la hausse des tarifs ». Aucun document fourni ne le dit. Votre réaction ?", "choix": ["Vous gardez la phrase, puisque la cause est plausible.", "Vous lui demandez de reformuler la cause plus prudemment.", "Vous écrivez « à justifier » et interrogez la personne qui sait.", "Vous vérifiez sur internet l'évolution réelle des tarifs du secteur."], "cles": ["KW3SPL"]}, {"id": "q07", "theme": "RGPD et données", "categorie": "metier", "question": "Un collègue colle le grand livre client, noms compris, dans son ChatGPT personnel. Que lui dites-vous ?", "choix": ["Orange : outil validé par l'entreprise, ou données anonymisées.", "Aucun souci, à condition que son compte soit payant.", "Vert : un grand livre ne contient aucune donnée sensible.", "Rouge : interdit dans tous les outils, même ceux validés par l'entreprise."], "cles": ["AU0ZHC"]}, {"id": "q08", "theme": "RGPD et données", "categorie": "metier", "question": "Vous remplacez le nom d'un salarié par [SALARIÉ 1] dans une note de frais. Elle devient :", "choix": ["Anonyme : on peut la coller dans tout outil.", "Publique : plus aucune règle ne s'applique.", "Verte, dès lors que l'IBAN est aussi retiré.", "Pseudonymisée : elle reste une donnée personnelle."], "cles": ["QULZXP"]}, {"id": "q09", "theme": "RGPD et données", "categorie": "generale", "question": "Votre ChatGPT Plus, payé de votre poche, peut-il servir de licence entreprise ?", "choix": ["Oui, puisqu'il s'agit d'une offre payante.", "Oui, à condition de désactiver l'entraînement dans les réglages du compte.", "Non : c'est un compte personnel, sans contrat avec l'entreprise.", "Non, car seul Copilot est autorisé en entreprise."], "cles": ["AIMBHF"]}, {"id": "q10", "theme": "Relecture et responsabilité", "categorie": "metier", "question": "L'IA a classé 300 écritures. Comment contrôlez-vous sans tout relire ?", "choix": ["Cinq lignes au hasard : si elles sont justes, c'est validé.", "Totaux par compte, lignes à enjeu, lignes marquées « incertain ».", "Vous lui demandez si elle est sûre de son classement.", "Vous relancez le classement dans un autre outil d'IA, puis comparez."], "cles": ["1H7NS3"]}, {"id": "q11", "theme": "Relecture et responsabilité", "categorie": "metier", "question": "Le tableau rendu par l'IA est propre, mais compte 213 lignes au lieu de 214. Que faites-vous ?", "choix": ["Rien : une ligne sur 214, c'est négligeable.", "Vous demandez à l'IA de recréer la ligne manquante dans le tableau.", "Vous l'utilisez, l'écart sera repris à la clôture.", "Vous cherchez la ligne manquante avant d'aller plus loin."], "cles": ["ZW1SS6"]}, {"id": "q12", "theme": "Choisir le type d'outil", "categorie": "generale", "question": "Vous cherchez la date d'une obligation publiée récemment. Quel mode utilisez-vous ?", "choix": ["La recherche web, puis vous ouvrez la source citée.", "La conversation simple, en mode rapide.", "L'analyse de fichier sur votre dernier export.", "Le mode qui réfléchit, sans recherche en ligne."], "cles": ["OH5OS9"]}, {"id": "q13", "theme": "Copilot et Excel", "categorie": "metier", "question": "Le bouton Copilot n'apparaît pas dans l'Excel de votre stage. Premier réflexe ?", "choix": ["Installer une extension trouvée sur internet.", "Vérifier le compte connecté et votre étiquette de licence.", "Conclure que Copilot ne sait pas travailler dans Excel.", "Passer par la fonction =COPILOT dans une cellule."], "cles": ["NBI2PF"]}, {"id": "q14", "theme": "Copilot et Excel", "categorie": "metier", "question": "Le classeur de clôture, partagé avec trois collègues, doit être réorganisé. Quel mode Copilot ?", "choix": ["Modifier : il agit directement sur le classeur, c'est plus rapide.", "Discuter : il réorganise sans toucher au classeur.", "Aucun : Copilot refuse les fichiers partagés.", "Planifier : vous validez son plan avant qu'il agisse."], "cles": ["1JOEYDX"]}, {"id": "q15", "theme": "Copilot et Excel", "categorie": "metier", "question": "Après conversion des montants stockés en texte, le total de l'export augmente. Que vérifiez-vous ?", "choix": ["Que l'écart égale exactement la somme des montants convertis.", "Rien : le nouveau total est forcément le bon.", "Que Copilot a bien arrondi les montants à l'euro.", "Que le nombre de fournisseurs est resté identique après la conversion."], "cles": ["1PMM7B0"]}, {"id": "q16", "theme": "Copilot et Excel", "categorie": "metier", "question": "Analyst calcule vos écarts avec du code Python. Qu'est-ce qui reste à vérifier ?", "choix": ["Le calcul lui-même : Python se trompe souvent sur les décimales.", "Rien : le code garantit un résultat juste.", "Le périmètre et la formule : un chiffre exact peut être faux.", "Que le code Python est écrit sans faute de syntaxe."], "cles": ["1GV9EZZ"]}, {"id": "q17", "theme": "Copilot et Excel", "categorie": "metier", "question": "Copilot retrouve le mail d'un fournisseur qui annonce un nouveau RIB. Que faites-vous ?", "choix": ["Vous mettez à jour le RIB, puisque Copilot a trouvé le mail.", "Vous demandez à Copilot de confirmer que le mail est authentique.", "Vous attendez la prochaine facture pour régler sur ce RIB.", "Vous vérifiez le changement par un autre canal."], "cles": ["K7R450"]}, {"id": "q18", "theme": "Automatisation", "categorie": "metier", "question": "Prévenir le responsable sur Teams dès qu'une ligne s'ajoute au suivi des impayés : quel outil ?", "choix": ["Une plateforme d'automatisation, déclenchée par l'événement.", "Une tâche programmée dans ChatGPT, relancée automatiquement chaque heure.", "Copilot dans Excel, en mode Planifier.", "Une page HTML construite par un agent de code."], "cles": ["1VETXJ9"]}, {"id": "q19", "theme": "Automatisation", "categorie": "metier", "question": "Dans le flux des factures, HT + TVA ne donne pas le TTC lu par l'IA. Que doit faire le flux ?", "choix": ["Ranger la facture et laisser la correction pour plus tard.", "Recalculer le TTC et l'écrire à la place.", "L'envoyer « à vérifier » chez un humain, sans la ranger.", "Redemander à l'IA de relire jusqu'à obtenir un total juste."], "cles": ["1BFCZWN"]}, {"id": "q20", "theme": "Automatisation", "categorie": "metier", "question": "Une note de frais arrive avec un montant vide. Que doit produire l'outil ?", "choix": ["Un montant à 0 €, et la ligne passe OK.", "Le statut « à examiner », avec la raison : montant manquant.", "La moyenne des autres notes du même salarié.", "Supprimer la ligne, pour ne pas fausser le total du mois."], "cles": ["I1V6O3"]}, {"id": "q21", "theme": "Automatisation", "categorie": "metier", "question": "Plus de 60 jours : prévenir le responsable. Plus de 30 : relancer. Pourquoi tester 60 en premier ?", "choix": ["Parce que l'outil lit toujours les conditions de bas en haut.", "Pour que le flux tourne plus vite.", "L'ordre ne change rien au résultat final.", "Sinon une facture à 90 jours n'aurait qu'une relance."], "cles": ["F4RWKH"]}, {"id": "q22", "theme": "Automatisation", "categorie": "metier", "question": "« Pour chaque ligne du relevé, chercher la facture » : quelle pièce de l'automatisation ?", "choix": ["Le déclencheur", "La condition", "La boucle", "La sortie"], "cles": ["1YM7AZ"]}, {"id": "q23", "theme": "Agents de code", "categorie": "metier", "question": "« L'outil sera local, donc l'agent ne voit jamais mes données. » Vrai ou faux ?", "choix": ["Faux : pendant la construction, ce qu'il ouvre part au modèle.", "Vrai : tout reste sur l'ordinateur, du début à la fin.", "Vrai, si l'on utilise Claude Code plutôt que Codex.", "Faux : l'outil terminé envoie les fichiers sur internet."], "cles": ["864VDN"]}, {"id": "q24", "theme": "Agents de code", "categorie": "metier", "question": "Votre outil de contrôle marche sur le fichier de test. Pouvez-vous l'utiliser en vrai ?", "choix": ["Oui : s'il marche une fois, il marchera sur tous les fichiers.", "Pas encore : testez chaque règle sur des cas pièges.", "Oui, si l'agent confirme que son code est correct.", "Pas encore : un développeur doit d'abord relire tout le code."], "cles": ["BK1KTV"]}];
+const CONFIG = { secondes: 30, multiplicateur: 2, codeAmenagement: "TEMPS-0058", codeFormateur: "FORM-KVLI1D", sel: "046c35702a96d68c", examen: "ABW-COMPTA-2026-11", tirage: {"generale": 10, "metier": 10} };
+
+const $ = (id) => document.getElementById(id);
+const melange = (t) => { const a = t.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).toUpperCase(); };
+const CLE = "qcm-" + CONFIG.examen;
+const lire = () => { try { return JSON.parse(localStorage.getItem(CLE) || "null"); } catch (e) { return null; } };
+const ecrire = (v) => { try { localStorage.setItem(CLE, JSON.stringify(v)); } catch (e) {} };
+const tentatives = () => { try { return Number(localStorage.getItem(CLE + "-n") || "0"); } catch (e) { return 0; } };
+const noterTentative = () => { try { localStorage.setItem(CLE + "-n", String(tentatives() + 1)); } catch (e) {} };
+const z = (n) => String(n).padStart(2, "0");
+const maintenant = () => { const d = new Date(); return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()) + " " + z(d.getHours()) + "h" + z(d.getMinutes()); };
+
+// Tirage : n questions par catégorie, dans le pool
+function tirer() {
+  const out = [];
+  Object.entries(CONFIG.tirage).forEach(([cat, n]) => { out.push(...melange(POOL.filter((q) => q.categorie === cat)).slice(0, n)); });
+  return melange(out);
+}
+const NB = Object.values(CONFIG.tirage).reduce((a, b) => a + b, 0);
+$("nbq").textContent = NB;
+
+let etat = null, tick = null, fin = 0, choixCourant = null, enCours = false, derniereSortie = 0;
+
+// Une tentative existe déjà sur ce poste : on ne relance pas l'examen
+(function reprise() {
+  const e = lire();
+  if (!e) return;
+  if (e.statut === "en cours") {
+    e.statut = "interrompu";
+    e.questions.slice(e.reponses.length).forEach((q) => e.reponses.push({ id: q.id, reponse: null, juste: false, temps: "interrompu", sortie: false }));
+    ecrire(e);
+  }
+  etat = e; afficherFin();
+})();
+
+$("nom").addEventListener("input", () => { $("go").disabled = $("nom").value.trim().length < 3; });
+$("code").addEventListener("input", () => {
+  const ok = $("code").value.trim().toUpperCase() === CONFIG.codeAmenagement;
+  $("tps").textContent = (ok ? CONFIG.secondes * CONFIG.multiplicateur : CONFIG.secondes) + " secondes";
+});
+
+// Protections : pas de copie, pas d'impression, pas de clic droit, sorties comptées
+["copy", "cut", "paste", "dragstart", "selectstart"].forEach((ev) => document.addEventListener(ev, (e) => {
+  if (e.target && e.target.tagName === "INPUT") return; e.preventDefault();
+}));
+document.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && ["c", "x", "p", "s", "u", "a"].includes(k) && !(e.target && e.target.tagName === "INPUT")) e.preventDefault();
+  if (k === "f12") e.preventDefault();
+});
+const sortie = () => {
+  if (!enCours) return;
+  const t = Date.now(); if (t - derniereSortie < 1500) return; derniereSortie = t;
+  etat.sorties++; etat.sortiesQ.push(etat.questions[etat.reponses.length].id); ecrire(etat);
+  $("alerte").innerHTML = '<span class="avert">Sortie de la page enregistrée (' + etat.sorties + '). Elle sera signalée au formateur.</span>';
+};
+document.addEventListener("visibilitychange", () => { if (document.hidden) sortie(); });
+window.addEventListener("blur", sortie);
+document.addEventListener("fullscreenchange", () => { if (enCours && !document.fullscreenElement) sortie(); });
+window.addEventListener("beforeunload", (e) => { if (enCours) { e.preventDefault(); e.returnValue = ""; } });
+
+$("go").addEventListener("click", () => {
+  if (lire()) { location.reload(); return; }
+  const amenage = $("code").value.trim().toUpperCase() === CONFIG.codeAmenagement;
+  try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  noterTentative();
+  etat = { nom: $("nom").value.trim(), amenage, duree: amenage ? CONFIG.secondes * CONFIG.multiplicateur : CONFIG.secondes,
+    debut: maintenant(), tentative: tentatives(), statut: "en cours", sorties: 0, sortiesQ: [], reponses: [],
+    questions: tirer().map((q) => ({ id: q.id, theme: q.theme, categorie: q.categorie, question: q.question, cles: q.cles, choix: melange(q.choix) })) };
+  ecrire(etat);
+  $("accueil").classList.add("cache"); $("examen").classList.remove("cache");
+  enCours = true; afficher();
+});
+
+function afficher() {
+  const q = etat.questions[etat.reponses.length]; choixCourant = null; $("valider").disabled = true; $("alerte").textContent = "";
+  $("compte").textContent = "Question " + (etat.reponses.length + 1) + " sur " + etat.questions.length;
+  $("question").textContent = q.question;
+  const box = $("choix"); box.innerHTML = "";
+  q.choix.forEach((t, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = t;
+    b.addEventListener("click", () => { choixCourant = i; [...box.children].forEach((x) => x.classList.remove("pris")); b.classList.add("pris"); $("valider").disabled = false; });
+    box.appendChild(b);
+  });
+  fin = Date.now() + etat.duree * 1000; clearInterval(tick); tick = setInterval(majTimer, 200); majTimer();
+}
+function majTimer() {
+  const reste = Math.max(0, fin - Date.now()), s = Math.ceil(reste / 1000);
+  $("timer").textContent = s + " s"; $("timer").classList.toggle("urgent", s <= 5);
+  $("jauge").style.width = (reste / (etat.duree * 1000) * 100) + "%";
+  if (reste <= 0) suivante(true);
+}
+$("valider").addEventListener("click", () => suivante(false));
+function suivante(tempsEcoule) {
+  clearInterval(tick);
+  const q = etat.questions[etat.reponses.length], t = choixCourant === null ? null : q.choix[choixCourant];
+  etat.reponses.push({ id: q.id, reponse: t, juste: !!(t && q.cles.includes(hash(t + CONFIG.sel))), temps: tempsEcoule && !t ? "écoulé" : "ok", sortie: etat.sortiesQ.includes(q.id) });
+  if (etat.reponses.length < etat.questions.length) { ecrire(etat); afficher(); }
+  else { etat.statut = "terminé"; ecrire(etat); enCours = false; afficherFin(); }
+}
+const URL_RESULTATS = "https://n8n.srv891668.hstgr.cloud/webhook/qcm-compta-resultat";
+function envoyer(fichier) {
+  $("finenvoi").textContent = "Envoi du résultat au formateur…";
+  fetch(URL_RESULTATS, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(fichier), keepalive: true })
+    .then((r) => { if (!r.ok) throw new Error("http " + r.status); etat.envoye = true; ecrire(etat); $("finenvoi").textContent = "Résultat envoyé au formateur."; })
+    .catch(() => { $("finenvoi").textContent = "Envoi automatique impossible : copiez le code ci-dessous dans le chat de la classe."; });
+}
+function afficherFin() {
+  $("accueil").classList.add("cache"); $("examen").classList.add("cache"); $("fin").classList.remove("cache");
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+  const score = etat.reponses.filter((r) => r.juste).length, total = etat.questions.length;
+  const coeur = [CONFIG.examen, etat.nom, score + "/" + total, "sorties " + etat.sorties, etat.amenage ? "amenagement" : "standard",
+    "tentative " + etat.tentative, etat.statut, etat.debut].join(" | ");
+  const code = coeur + " | " + hash(coeur + CONFIG.sel);
+  if (etat.statut === "interrompu") { $("finmotif").textContent = "L'examen a été interrompu (page rechargée ou fermée). Les questions restantes comptent sans réponse."; $("finmotif").classList.remove("cache"); }
+  $("finnom").textContent = etat.nom;
+  $("finscore").textContent = score + " / " + total;
+  $("finsorties").textContent = etat.sorties ? "Sorties de la page pendant l'examen : " + etat.sorties + "." : "Aucune sortie de la page.";
+  $("fincode").textContent = code;
+  const fichier = { examen: CONFIG.examen, nom: etat.nom, debut: etat.debut, tentative: etat.tentative, statut: etat.statut, amenagement: etat.amenage,
+    secondesParQuestion: etat.duree, score, total, sorties: etat.sorties, code,
+    reponses: etat.reponses.map((r) => ({ id: r.id, reponse: r.reponse, juste: r.juste, temps: r.temps, sortie: r.sortie })) };
+  if (!etat.envoye) envoyer(fichier); else $("finenvoi").textContent = "Résultat envoyé au formateur.";
+  $("telecharger").onclick = () => {
+    const blob = new Blob([JSON.stringify(fichier, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "resultat-" + etat.nom.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json"; a.click();
+  };
+}
+$("formateur").addEventListener("click", () => $("reset").classList.toggle("cache"));
+$("resetok").addEventListener("click", () => {
+  if ($("codeformateur").value.trim().toUpperCase() !== CONFIG.codeFormateur) { $("codeformateur").value = ""; return; }
+  try { localStorage.removeItem(CLE); } catch (e) {}
+  location.reload();
+});
+</script>
+</body>
+</html>
